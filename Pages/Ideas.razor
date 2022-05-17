@@ -12,7 +12,7 @@
     {
       var client = ClientFactory.CreateClient("WebAPI");
       var things = await client.GetFromJsonAsync<object>("ideas");
-    } 
+    }
     catch (AccessTokenNotAvailableException exception)
     {
       exception.Redirect();

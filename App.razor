@@ -1,15 +1,15 @@
-﻿<CascadingAuthenticationState>
+﻿@inject NavigationManager _navigationManager
+<CascadingAuthenticationState>
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <Authorizing>
+                    <p>Loading...</p>
+                    @* TODO: loading spinner *@
+                </Authorizing>
                 <NotAuthorized>
-                    @if (context.User.Identity?.IsAuthenticated != true)
-                    {
-                        <RedirectToLogin />
-                    }
-                    else
-                    {
-                        <p role="alert">You are not authorized to access this resource.</p>
+                    @{
+                        _navigationManager.NavigateTo("/landing");
                     }
                 </NotAuthorized>
             </AuthorizeRouteView>
