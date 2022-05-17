@@ -1,0 +1,21 @@
+@page "/ideas"
+@inject IHttpClientFactory ClientFactory
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+<PageTitle>Ideas</PageTitle>
+<h1>Ideas</h1>
+
+@code {
+  protected override async Task OnInitializedAsync()
+  {
+    try
+    {
+      var client = ClientFactory.CreateClient("WebAPI");
+      var things = await client.GetFromJsonAsync<object>("ideas");
+    } 
+    catch (AccessTokenNotAvailableException exception)
+    {
+      exception.Redirect();
+    }
+  }
+}
