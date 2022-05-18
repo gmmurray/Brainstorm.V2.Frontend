@@ -1,5 +1,5 @@
 @page "/ideas/create"
-@* TODO: finish field types *@
+
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @inject AuthenticationStateProvider GetAuthenticationStateAsync
 @inject IHttpClientFactory ClientFactory
@@ -22,7 +22,7 @@
       <div class="col-lg-6 my-1">
         <label class="form-label">name</label>
         <InputText @bind-Value="ideaModel.Name" class="form-control" />
-        <ValidationMessage For="@(() => ideaModel.Name)" class="invalid-feedback" />
+        <ValidationMessage For="@(() => ideaModel.Name)" />
       </div>
       <div class="my-1 col-lg-6">
         <label class="form-label">template</label>
@@ -42,7 +42,7 @@
                     <option value="@template.Id">@template.Name</option>
                   }
                 </InputSelect>
-                <ValidationMessage For="@(() => ideaModel.TemplateId)" class="invalid-feedback" />
+                <ValidationMessage For="@(() => ideaModel.TemplateId)" />
               </div>
               @foreach (var field in ideaModel.Fields)
       {
@@ -53,29 +53,25 @@
             <InputTextArea @bind-Value="field.Value" class="form-control" rows="3" />
             <ValidationMessage For="@(() => field.Value)" />
           }
-        </div>
-      }
-      <template x-show="fields.length > 0" x-for="(field, f) in fields" :key="field.name">
-        <div class="col-12 my-1">
-          <label class="form-label" x-text="field.name"></label>
-          <template x-if="field.type === 'boolean'">
+          else if (field.Type == TemplateFieldType.boolean)
+          {
             <div>
               <div class="form-check">
-                <input class="form-check-input" type="radio" x-model="field.value" :value="true"
-                  :name="`${f}-checkbox-true`" :id="`${f}-checkbox-true`" />
-                <label class="form-check-label" :for="`${f}-checkbox-true`">yes</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" x-model="field.value" :value="false"
-                  :name="`${f}-checkbox-false`" :id="`${f}-checkbox-false`" />
-                <label class="form-check-label" :for="`${f}-checkbox-false`">no</label>
+                <InputCheckbox class="form-check-input" Value="@field.ValueBool"
+              ValueChanged="(bool value) => HandleCheckboxChange(field, value)"
+              ValueExpression="() => field.ValueBool" />
+                <label class="form-check-label">true</label>
+                <ValidationMessage For="@(() => field.Value)" />
               </div>
             </div>
-          </template>
-          <template x-if="field.type === 'number'"><input class="form-control" type="number"
-              x-model="field.value" /></template>
+          }
+          else if (field.Type == TemplateFieldType.number)
+          {
+            <InputText @bind-Value="field.Value" class="form-control" />
+            <ValidationMessage For="@(() => field.Value)" />
+          }
         </div>
-      </template>
+      }
       <div class="col-12 my-1">
         <button type="submit" disabled="@(formLoading || templatesLoading)" class="btn btn-primary">
           @if (formLoading)
@@ -130,9 +126,13 @@
   {
     formLoading = true;
     submitMessage = null;
+    if (client is null)
+    {
+      return;
+    }
     try
     {
-      var response = await client?.PostAsJsonAsync("ideas", ideaModel);
+      var response = await client!.PostAsJsonAsync("ideas", ideaModel);
 
       if (response.StatusCode != System.Net.HttpStatusCode.Created)
       {
@@ -156,7 +156,7 @@
     if (string.IsNullOrEmpty(value) || !templates.Any())
     {
       ideaModel.TemplateId = null;
-      ideaModel.Fields = new List<IdeaField>();
+      ideaModel.Fields = new List<CreateIdeaField>();
       return;
     }
     else
@@ -171,11 +171,19 @@
       return;
     }
 
-    ideaModel.Fields = selected.Fields.Select(x => new IdeaField
+    ideaModel.Fields = selected.Fields.Select(x => new CreateIdeaField
     {
       Name = x.Name,
       Type = x.Type,
-      Value = null
+      Value = x.Type == TemplateFieldType.boolean ? false.ToString() : null
     }).ToList();
+
+    return;
+  }
+
+  private void HandleCheckboxChange(CreateIdeaField field, bool inputValue)
+  {
+    field.Value = inputValue.ToString();
+    field.ValueBool = inputValue;
   }
 }

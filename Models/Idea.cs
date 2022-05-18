@@ -31,6 +31,11 @@ namespace Brainstorm.V2.Frontend.Models
     [Required(ErrorMessage = "template is required")]
     new public string? TemplateId { get; set; }
     [ValidateComplexType]
-    new public List<IdeaField> Fields { get; set; } = new List<IdeaField>();
+    public new List<CreateIdeaField> Fields { get; set; } = new List<CreateIdeaField>();
+  }
+
+  public class CreateIdeaField : IdeaField
+  {
+    public bool ValueBool { get; set; }
   }
 }
