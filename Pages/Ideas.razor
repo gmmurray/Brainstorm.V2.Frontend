@@ -43,8 +43,11 @@
               <h6 class="card-subtitle mb-2 text-muted mt-auto">@(item.Template?.Name ?? "no template")</h6>
             </div>
             <div class="card-footer">
-              <a href="ideas/view?ideaId=@(item.Id)" class="card-link">view</a>
+              <a href="ideas/view?ideaId=@(item.Id)" class="btn btn-link">view</a>
+              <button @onclick="() => HandleDelete(item)" class="btn btn-link text-danger"
+            disabled="@deleting">view</button>
             </div>
+
           </div>
         </div>
       }
@@ -57,9 +60,16 @@
   private IEnumerable<Idea> ideas = Enumerable.Empty<Idea>();
   private IEnumerable<Idea> visibleIdeas = Enumerable.Empty<Idea>();
   private bool loading = true;
+  private bool deleting = false;
 
   protected override async Task OnInitializedAsync()
   {
+    await RetrieveIdeas();
+  }
+
+  private async Task RetrieveIdeas()
+  {
+    loading = true;
     try
     {
       var client = ClientFactory.CreateClient("WebAPI");
@@ -94,5 +104,27 @@
   private void HandleSearchReset()
   {
     visibleIdeas = ideas.ToList();
+  }
+
+  private async Task HandleDelete(Idea idea)
+  {
+    deleting = true;
+    try
+    {
+      var client = ClientFactory.CreateClient("WebAPI");
+      var response = await client.DeleteAsync($"ideas/{idea.Id}");
+      if (response.IsSuccessStatusCode)
+      {
+        await RetrieveIdeas();
+      }
+    }
+    catch (Exception exception)
+    {
+      if (exception is AccessTokenNotAvailableException)
+      {
+        ((AccessTokenNotAvailableException)exception).Redirect();
+      }
+    }
+    deleting = false;
   }
 }
