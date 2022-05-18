@@ -1,0 +1,29 @@
+@foreach (var item in placeholders)
+{
+  <div class="col">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title placeholder-glow">
+          <span class="placeholder col-8"></span>
+        </h5>
+        <h6 class="card-subtitle placeholder-glow"><span class="placeholder col-5 bg-secondary"></span></h6>
+      </div>
+      <div class="card-footer">
+        <a href="" tabindex="-1" class="disabled placeholder col-4"></a>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [Parameter]
+  [EditorRequired]
+  public int Count { get; set; }
+
+  private IEnumerable<int> placeholders = Enumerable.Empty<int>();
+
+  protected override void OnInitialized()
+  {
+    placeholders = new int[Count];
+  }
+}

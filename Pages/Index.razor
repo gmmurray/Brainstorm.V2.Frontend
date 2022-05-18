@@ -1,11 +1,139 @@
 ﻿@page "/"
+@inject IHttpClientFactory ClientFactory
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 
-<PageTitle>Index</PageTitle>
+<PageTitle>home</PageTitle>
 
-<h1>Hello, world!</h1>
+<div>
+  <h1 class="display-1">home</h1>
+  <div class="row">
+    <div class="col-12">
+      <h5 class="display-5">ideas</h5>
+    </div>
+    <div class="col-12">
+      @if (ideasLoading)
+      {
+        <div class="row row-cols-1 row-cols-md-3 g-4 mt-2">
+          <CardPlaceholders Count="3" />
+        </div>
+      }
+      else if (!ideas.Any())
+      {
+        <div>
+          <h4 class="fs-4 text-muted">no ideas yet</h4>
+        </div>
+      }
+      else
+      {
+        <div class="row row-cols-1 row-cols-md-3 g-4 mt-2">
+          @foreach (var item in ideas)
+          {
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                  <h5 class="card-title">@item.Name</h5>
+                  <h6 class="card-subtitle mb-2 text-muted mt-auto">@(item.Template?.Name ?? "no template")
+                  </h6>
+                </div>
+                <div class="card-footer">
+                  <a href="ideas/view?ideaId=@(item.Id)" class="card-link">view</a>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+    <div class="col-12 mt-3">
+      <a class="btn btn-primary @(ideasLoading ? "disabled" : "")" href="ideas">view
+        all <i class="bi bi-arrow-right-short"></i></a>
+      @if (!ideasLoading && !ideas.Any())
+      {
+        <a class="btn btn-primary ms-2 @(ideasLoading ? "disabled" : "")" href="ideas/create">create one <i
+          class="bi bi-plus"></i></a>
+      }
+    </div>
+  </div>
+  <hr />
+  <div class="row">
+    <div class="col-12">
+      <h5 class="display-5">templates</h5>
+    </div>
+    <div class="col-12">
+      @if (templatesLoading)
+      {
+        <div class="row row-cols-1 row-cols-md-3 g-4 mt-2">
+          <CardPlaceholders Count="3" />
+        </div>
+      }
+      else if (!templates.Any())
+      {
+        <div>
+          <h4 class="fs-4 text-muted">no templates yet</h4>
+        </div>
+      }
+      else
+      {
+        <div class="row row-cols-1 row-cols-md-3 g-4 mt-2">
+          @foreach (var item in templates)
+          {
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-body d-flex flex-column">
+                  <h5 class="card-title">@item.Name</h5>
+                  <h6 class="card-subtitle mb-2 text-muted mt-auto">@(item.Fields.Count() + " field(s)")</h6>
+                </div>
+                <div class="card-footer">
+                  <a href="templates/view?templateId=@(item.Id)" class="card-link">view</a>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
 
-<div class="alert alert-warning" role="alert">
-    Before authentication will function correctly, you must configure your provider details in <code>Program.cs</code>
-</div>Welcome to your new app.
+    </div>
+    <div class="col-12 mt-3">
+      <a class="btn btn-primary @(templatesLoading ? "disabled" : "")" href="templates">view all <i
+          class="bi bi-arrow-right-short"></i></a>
+      @if (!templatesLoading && !templates.Any())
+      {
+        <a class="btn btn-primary ms-2 @(templatesLoading ? "disabled" : "")" href="templates/create">create one <i
+          class="bi bi-plus"></i></a>
+      }
+    </div>
+  </div>
+</div>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+@code {
+  private IEnumerable<Idea> ideas = Enumerable.Empty<Idea>();
+  private bool ideasLoading = true;
+  private IEnumerable<Template> templates = Enumerable.Empty<Template>();
+  private bool templatesLoading = true;
+
+  protected override async Task OnInitializedAsync()
+  {
+    var client = ClientFactory.CreateClient("WebAPI");
+
+    var ideasTask = client.GetFromJsonAsync<IEnumerable<Idea>>("ideas?limit=3");
+    var templatesTask = client.GetFromJsonAsync<IEnumerable<Template>>("templates?limit=3");
+
+    try
+    {
+      await Task.WhenAll(ideasTask, templatesTask);
+
+      ideas = ideasTask?.Result ?? Enumerable.Empty<Idea>();
+      templates = templatesTask?.Result ?? Enumerable.Empty<Template>();
+    }
+    catch (Exception exception)
+    {
+      if (exception is AccessTokenNotAvailableException)
+      {
+        ((AccessTokenNotAvailableException)exception).Redirect();
+      }
+    }
+
+    ideasLoading = false;
+    templatesLoading = false;
+  }
+}

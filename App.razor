@@ -4,8 +4,7 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <Authorizing>
-                    <p>Loading...</p>
-                    @* TODO: loading spinner *@
+                    <Spinner />
                 </Authorizing>
                 <NotAuthorized>
                     @{
@@ -13,7 +12,6 @@
                     }
                 </NotAuthorized>
             </AuthorizeRouteView>
-            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
         </Found>
         <NotFound>
             <PageTitle>Not found</PageTitle>
