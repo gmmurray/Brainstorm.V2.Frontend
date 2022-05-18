@@ -78,15 +78,14 @@
 
   private void HandleSearch(ChangeEventArgs args)
   {
-    var result = new List<Template>();
+    var result = (templates ?? Enumerable.Empty<Template>()).ToList();
     var value = args.Value?.ToString() ?? "";
-    if (string.IsNullOrEmpty(value))
+
+    if (!string.IsNullOrEmpty(value))
     {
-      result = templates.ToList();
-    }
-    else
-    {
-      result = templates?.Where(x => x.Name.ToLower().Contains(value.ToLower())).ToList();
+      result = result
+      .Where(x => (x.Name ?? "").ToLower().Contains(value.ToLower()))
+      .ToList();
     }
 
     visibleTemplates = result.ToList();

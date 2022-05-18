@@ -78,15 +78,14 @@
 
   private void HandleSearch(ChangeEventArgs args)
   {
-    var result = new List<Idea>();
+    var result = (ideas ?? Enumerable.Empty<Idea>()).ToList();
     var value = args.Value?.ToString() ?? "";
-    if (string.IsNullOrEmpty(value))
+
+    if (!string.IsNullOrEmpty(value))
     {
-      result = ideas.ToList();
-    }
-    else
-    {
-      result = ideas?.Where(x => x.Name.ToLower().Contains(value.ToLower())).ToList();
+      result = result
+      .Where(x => (x.Name ?? "").ToLower().Contains(value.ToLower()))
+      .ToList();
     }
 
     visibleIdeas = result.ToList();

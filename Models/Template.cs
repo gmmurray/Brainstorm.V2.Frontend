@@ -1,9 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Brainstorm.V2.Frontend.Models
 {
   public class Template
   {
     public string? Id { get; set; }
     public string? UserId { get; set; }
+    [Required]
     public string? Name { get; set; }
     public IEnumerable<TemplateField> Fields { get; set; } = Enumerable.Empty<TemplateField>();
   }

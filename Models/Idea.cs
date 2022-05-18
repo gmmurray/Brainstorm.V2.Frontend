@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Brainstorm.V2.Frontend.Models
 {
   public class Idea
@@ -7,11 +9,12 @@ namespace Brainstorm.V2.Frontend.Models
     public string? Name { get; set; }
     public Template? Template { get; set; }
     public string? TemplateId { get; set; }
-    public IEnumerable<IdeaField> Fields { get; set; } = Enumerable.Empty<IdeaField>();
+    public List<IdeaField> Fields { get; set; } = new();
   }
 
   public class IdeaField : TemplateField
   {
+    [Required(ErrorMessage = "value is required")]
     public string? Value { get; set; }
   }
 
@@ -19,5 +22,15 @@ namespace Brainstorm.V2.Frontend.Models
   {
     public int? Limit { get; set; }
     public string? TemplateId { get; set; }
+  }
+
+  public class CreateIdeaModel : Idea
+  {
+    [Required(ErrorMessage = "name is required")]
+    new public string? Name { get; set; }
+    [Required(ErrorMessage = "template is required")]
+    new public string? TemplateId { get; set; }
+    [ValidateComplexType]
+    new public List<IdeaField> Fields { get; set; } = new List<IdeaField>();
   }
 }

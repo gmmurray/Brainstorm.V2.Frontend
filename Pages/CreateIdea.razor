@@ -1,0 +1,181 @@
+@page "/ideas/create"
+@* TODO: finish field types *@
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject AuthenticationStateProvider GetAuthenticationStateAsync
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>create idea</PageTitle>
+
+<div>
+  <h1 class="display-1">new idea</h1>
+  <a class="btn btn-outline-primary" href="ideas">back to ideas</a>
+  <EditForm Model="@ideaModel" OnValidSubmit="@HandleValidSubmit" class="mt-3">
+    <ObjectGraphDataAnnotationsValidator />
+    <div class="row">
+      @if (!string.IsNullOrEmpty(submitMessage))
+      {
+        <div class="col-12">
+          <p class="text-danger fw-bold">@submitMessage</p>
+        </div>
+      }
+      <div class="col-lg-6 my-1">
+        <label class="form-label">name</label>
+        <InputText @bind-Value="ideaModel.Name" class="form-control" />
+        <ValidationMessage For="@(() => ideaModel.Name)" class="invalid-feedback" />
+      </div>
+      <div class="my-1 col-lg-6">
+        <label class="form-label">template</label>
+        <InputSelect id="name" Value="@ideaModel.TemplateId"
+          ValueChanged="(string value) => HandleTemplateIdChange(value)" ValueExpression="() => ideaModel.TemplateId"
+          class="form-select" disabled="@templatesLoading">
+          @if (templatesLoading)
+                  {
+                    <option selected value=""><span>loading...</span></option>
+                  }
+                  else
+                  {
+                    <option selected value=""><span>select...</span></option>
+                  }
+                  @foreach (var template in templates)
+                  {
+                    <option value="@template.Id">@template.Name</option>
+                  }
+                </InputSelect>
+                <ValidationMessage For="@(() => ideaModel.TemplateId)" class="invalid-feedback" />
+              </div>
+              @foreach (var field in ideaModel.Fields)
+      {
+        <div class="col-12 my-1">
+          <label class="form-label">@field.Name</label>
+          @if (field.Type == TemplateFieldType.text)
+          {
+            <InputTextArea @bind-Value="field.Value" class="form-control" rows="3" />
+            <ValidationMessage For="@(() => field.Value)" />
+          }
+        </div>
+      }
+      <template x-show="fields.length > 0" x-for="(field, f) in fields" :key="field.name">
+        <div class="col-12 my-1">
+          <label class="form-label" x-text="field.name"></label>
+          <template x-if="field.type === 'boolean'">
+            <div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" x-model="field.value" :value="true"
+                  :name="`${f}-checkbox-true`" :id="`${f}-checkbox-true`" />
+                <label class="form-check-label" :for="`${f}-checkbox-true`">yes</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" x-model="field.value" :value="false"
+                  :name="`${f}-checkbox-false`" :id="`${f}-checkbox-false`" />
+                <label class="form-check-label" :for="`${f}-checkbox-false`">no</label>
+              </div>
+            </div>
+          </template>
+          <template x-if="field.type === 'number'"><input class="form-control" type="number"
+              x-model="field.value" /></template>
+        </div>
+      </template>
+      <div class="col-12 my-1">
+        <button type="submit" disabled="@(formLoading || templatesLoading)" class="btn btn-primary">
+          @if (formLoading)
+          {
+            <span class="spinner-border spinner-border-sm"></span>
+            <span>saving...</span>
+          }
+          else
+          {
+            <span>save</span>
+          }
+        </button>
+      </div>
+    </div>
+  </EditForm>
+</div>
+
+@code {
+  private CreateIdeaModel ideaModel = new();
+  private IEnumerable<Template> templates = Enumerable.Empty<Template>();
+  private HttpClient? client;
+  private EditContext? editContext;
+  private string? submitMessage;
+  private bool formLoading = false;
+  private bool templatesLoading = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    editContext = new(ideaModel);
+    var authState = await GetAuthenticationStateAsync.GetAuthenticationStateAsync();
+
+    ideaModel.UserId = authState.User.FindFirst(c => c.Type == "sub")?.Value;
+
+    client = ClientFactory.CreateClient("WebAPI");
+
+    templatesLoading = true;
+    try
+    {
+      templates = (await client.GetFromJsonAsync<IEnumerable<Template>>("templates")) ?? Enumerable.Empty<Template>();
+    }
+    catch (Exception exception)
+    {
+      if (exception is AccessTokenNotAvailableException)
+      {
+        ((AccessTokenNotAvailableException)exception).Redirect();
+      }
+    }
+    templatesLoading = false;
+  }
+
+  private async Task HandleValidSubmit()
+  {
+    formLoading = true;
+    submitMessage = null;
+    try
+    {
+      var response = await client?.PostAsJsonAsync("ideas", ideaModel);
+
+      if (response.StatusCode != System.Net.HttpStatusCode.Created)
+      {
+        submitMessage = "error creating idea";
+        return;
+      }
+
+      var created = await response.Content.ReadFromJsonAsync<Idea>();
+
+      NavigationManager.NavigateTo($"ideas/view?ideaId={created?.Id}");
+    }
+    catch (Exception exception)
+    {
+      Console.WriteLine(exception);
+    }
+    formLoading = false;
+  }
+
+  private void HandleTemplateIdChange(string value)
+  {
+    if (string.IsNullOrEmpty(value) || !templates.Any())
+    {
+      ideaModel.TemplateId = null;
+      ideaModel.Fields = new List<IdeaField>();
+      return;
+    }
+    else
+    {
+      ideaModel.TemplateId = value;
+    }
+
+    var selected = templates.FirstOrDefault(x => string.Equals(x.Id, value));
+
+    if (selected is null)
+    {
+      return;
+    }
+
+    ideaModel.Fields = selected.Fields.Select(x => new IdeaField
+    {
+      Name = x.Name,
+      Type = x.Type,
+      Value = null
+    }).ToList();
+  }
+}
