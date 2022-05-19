@@ -44,7 +44,9 @@
               <h6 class="card-subtitle mb-2 text-muted mt-auto">@(item.Fields.Count() + " field(s)")</h6>
             </div>
             <div class="card-footer">
-              <a href="templates/view/@item.Id" class="card-link">view</a>
+              <a href="templates/view/@item.Id" class="btn btn-link">view</a>
+              <button @onclick="() => HandleDelete(item)" class="btn btn-link text-danger"
+            disabled="@deleting">delete</button>
             </div>
           </div>
         </div>
@@ -57,9 +59,16 @@
   private IEnumerable<Template> templates = Enumerable.Empty<Template>();
   private IEnumerable<Template> visibleTemplates = Enumerable.Empty<Template>();
   private bool loading = true;
+  private bool deleting = false;
 
   protected override async Task OnInitializedAsync()
   {
+    await RetrieveTemplates();
+  }
+
+  private async Task RetrieveTemplates()
+  {
+    loading = true;
     try
     {
       var client = ClientFactory.CreateClient("WebAPI");
@@ -94,5 +103,27 @@
   private void HandleSearchReset()
   {
     visibleTemplates = templates.ToList();
+  }
+
+  private async Task HandleDelete(Template template)
+  {
+    deleting = true;
+    try
+    {
+      var client = ClientFactory.CreateClient("WebAPI");
+      var response = await client.DeleteAsync($"templates/{template.Id}");
+      if (response.IsSuccessStatusCode)
+      {
+        await RetrieveTemplates();
+      }
+    }
+    catch (Exception exception)
+    {
+      if (exception is AccessTokenNotAvailableException)
+      {
+        ((AccessTokenNotAvailableException)exception).Redirect();
+      }
+    }
+    deleting = false;
   }
 }
