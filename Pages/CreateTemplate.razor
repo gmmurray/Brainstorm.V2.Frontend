@@ -1,0 +1,143 @@
+@page "/templates/create"
+
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject AuthenticationStateProvider GetAuthenticationStateAsync
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>create template</PageTitle>
+
+<div>
+  <h1 class="display-1">new template</h1>
+  <a class="btn btn-outline-primary" href="templates">back to templates</a>
+  <EditForm Model="@templateModel" OnValidSubmit="@HandleValidSubmit" class="mt-3">
+    <ObjectGraphDataAnnotationsValidator />
+    <div class="row">
+      @if (!string.IsNullOrEmpty(submitMessage))
+      {
+        <div class="col-12">
+          <p class="text-danger fw-bold">@submitMessage</p>
+        </div>
+      }
+      <div class="my-1 col-lg-6">
+        <InputText @bind-Value="templateModel.Name" class="form-control" placeholder="name" />
+        <ValidationMessage For="@(() => templateModel.Name)" />
+      </div>
+      <div class="my-1 col-lg-6">
+        <div class="input-group">
+          <InputText @bind-Value="templateModel.NewField.Name" class="form-control w-50 no-validate"
+            placeholder="add a field" />
+          <InputSelect @bind-Value="templateModel.NewField.Type" class="form-select no-validate">
+            @foreach (var value in Enum.GetValues(typeof(TemplateFieldType)))
+            {
+                      <option value="@value">@(((TemplateFieldType)value).ToString())</option>
+            }
+                  </InputSelect>
+                  <button @onclick="HandleAddField" class="btn btn-outline-primary" type="button">
+                    add
+                  </button>
+                </div>
+                <ValidationMessage For="@(() => templateModel.NewField.Name)" />
+              </div>
+              <div class="my-1 col-12">
+                <button type="submit" disabled="@formLoading" class="btn btn-primary">
+                  @if (formLoading)
+          {
+            <span class="spinner-border spinner-border-sm"></span>
+            <span>saving...</span>
+          }
+          else
+          {
+            <span>save</span>
+          }
+        </button>
+      </div>
+      <div class="my-1 col-12">
+        <ul class="list-group list-group-numbered">
+          @for (var i = 0; i < addedFields.Count(); i++)
+          {
+            var index = i;
+            var field = addedFields.ElementAt(index);
+            <li class="list-group-item d-flex justify-content-between align-items-start">
+              <div class="ms-2 me-auto">
+                <div class="fw-bold">@field.Name</div>
+                <span>@field.Type</span>
+              </div>
+              <button type="button" class="btn btn-danger" @onclick="() => HandleRemoveField(index)">
+                <i class="bi bi-x"></i>
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  </EditForm>
+</div>
+
+@code {
+  private CreateTemplateModel templateModel = new();
+  private List<TemplateField> addedFields = Enumerable.Empty<TemplateField>().ToList();
+  private HttpClient? httpClient;
+  private EditContext? editContext;
+  private string? submitMessage;
+  private bool formLoading = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    editContext = new(templateModel);
+    var authState = await GetAuthenticationStateAsync.GetAuthenticationStateAsync();
+
+    templateModel.UserId = authState.User.FindFirst(c => c.Type == "sub")?.Value;
+
+    httpClient = ClientFactory.CreateClient("WebAPI");
+  }
+
+  private async Task HandleValidSubmit()
+  {
+    formLoading = true;
+    submitMessage = null;
+
+    if (httpClient is null)
+    {
+      return;
+    }
+
+    try
+    {
+      var response = await httpClient!.PostAsJsonAsync("templates", templateModel);
+
+      if (response.StatusCode != System.Net.HttpStatusCode.Created)
+      {
+        submitMessage = "error creating template";
+        return;
+      }
+
+      var created = await response.Content.ReadFromJsonAsync<Template>();
+
+      NavigationManager.NavigateTo($"templates/view/{created?.Id}");
+    }
+    catch (Exception exception)
+    {
+      submitMessage = exception.Message;
+    }
+    formLoading = true;
+  }
+
+  private void HandleAddField()
+  {
+    addedFields.Add(new TemplateField
+    {
+      Name = templateModel.NewField.Name,
+      Type = templateModel.NewField.Type,
+    });
+
+    templateModel.NewField.Name = "";
+    templateModel.NewField.Type = TemplateFieldType.text;
+  }
+
+  private void HandleRemoveField(int index)
+  {
+    Console.WriteLine(index);
+    addedFields.RemoveAt(index);
+  }
+}

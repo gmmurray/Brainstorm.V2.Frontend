@@ -143,7 +143,7 @@
     }
     catch (Exception exception)
     {
-      submitMessage = "error creating idea";
+      submitMessage = exception.Message;
     }
     formLoading = false;
   }

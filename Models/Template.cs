@@ -29,4 +29,11 @@ namespace Brainstorm.V2.Frontend.Models
     public int? Limit { get; set; }
     public IEnumerable<string> Ids { get; set; } = Enumerable.Empty<string>();
   }
+
+  public class CreateTemplateModel : Template
+  {
+    [Required(ErrorMessage = "name is required")]
+    new public string? Name { get; set; }
+    public TemplateField NewField { get; set; } = new TemplateField { Name = "", Type = TemplateFieldType.text };
+  }
 }
