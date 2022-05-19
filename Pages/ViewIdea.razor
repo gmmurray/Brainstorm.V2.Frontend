@@ -1,0 +1,200 @@
+@page "/ideas/view/{Id}"
+
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager NavigationManager
+
+<div>
+  <h1 class="display-1">view idea</h1>
+  <a class="btn btn-outline-primary" href="ideas">back to ideas</a>
+  @if (ideaLoading)
+  {
+    <Spinner />
+  }
+  else if (idea is null)
+  {
+    <div>
+      <h4 class="display-4 text-muted text-center mt-5">idea could not be found</h4>
+    </div>
+  }
+  else
+  {
+    <EditForm Model="@idea" OnValidSubmit="@HandleValidSubmit" class="mt-3">
+      <ObjectGraphDataAnnotationsValidator />
+      <div class="row">
+        @if (!string.IsNullOrEmpty(submitMessage))
+        {
+          <div class="col-12">
+            <p class="text-danger fw-bold">@submitMessage</p>
+          </div>
+        }
+        <div class="col-lg-6 my-1">
+          <label class="form-label">name</label>
+          <InputText @bind-Value="idea.Name" class="form-control" />
+          <ValidationMessage For="@(() => idea.Name)" />
+        </div>
+        <div class="my-1 col-lg-6">
+          <label class="form-label">template</label>
+          <input class="form-control" value="@idea.Template?.Name" type="text" disabled readonly />
+        </div>
+        @foreach (var field in idea.Fields)
+        {
+          <div class="col-12 my-1">
+            <label class="form-label">@field.Name</label>
+            @if (field.Type == TemplateFieldType.text)
+            {
+              <InputTextArea @bind-Value="field.Value" class="form-control" rows="3" />
+              <ValidationMessage For="@(() => field.Value)" />
+            }
+            else if (field.Type == TemplateFieldType.boolean)
+            {
+              <div class="form-check">
+                <InputCheckbox class="form-check-input" Value="@field.ValueBool"
+            ValueChanged="(bool value) => HandleCheckboxChange(field, value)" ValueExpression="() => field.ValueBool" />
+                <label class="form-check-label">true</label>
+                <ValidationMessage For="@(() => field.Value)" />
+              </div>
+            }
+            else if (field.Type == TemplateFieldType.number)
+            {
+              <InputText @bind-Value="field.Value" class="form-control" />
+              <ValidationMessage For="@(() => field.Value)" />
+            }
+          </div>
+        }
+        <div class="col-12 my-1">
+          <button type="submit" disabled="@formLoading" class="btn btn-primary">
+            @if (formLoading)
+            {
+              <span class="spinner-border spinner-border-sm"></span>
+              <span>saving...</span>
+            }
+            else
+            {
+              <span>save</span>
+            }
+          </button><button type="button" @onclick="HandleDelete" disabled="@(formLoading || deleteLoading)"
+          class="btn btn-danger ms-2">
+            @if (deleteLoading)
+            {
+              <span class="spinner-border spinner-border-sm"></span>
+              <span>deleting...</span>
+            }
+            else
+            {
+              <span>delete</span>
+            }
+          </button>
+        </div>
+      </div>
+    </EditForm>
+  }
+</div>
+
+@code {
+  [Parameter]
+  public string? Id { get; set; }
+  private UpdateIdeaModel? idea;
+  private EditContext? editContext;
+  private HttpClient? httpClient;
+  private bool ideaLoading = true;
+  private bool formLoading = false;
+  private bool deleteLoading = false;
+  private string? submitMessage;
+
+  protected override async Task OnInitializedAsync()
+  {
+    httpClient = ClientFactory.CreateClient("WebAPI");
+    await RetrieveIdea();
+    editContext = new(idea!);
+  }
+
+  private async Task RetrieveIdea()
+  {
+    if (httpClient is null | Id is null)
+    {
+      return;
+    }
+
+    ideaLoading = true;
+    try
+    {
+      idea = await httpClient!.GetFromJsonAsync<UpdateIdeaModel>($"ideas/{Id}");
+      if (idea is null)
+      {
+        return;
+      }
+      foreach (var field in idea!.Fields)
+      {
+        field!.ValueBool = field.Type == TemplateFieldType.boolean ? field.Value == "True" : false;
+      }
+    }
+    catch (Exception exception)
+    {
+      if (exception is AccessTokenNotAvailableException)
+      {
+        ((AccessTokenNotAvailableException)exception).Redirect();
+      }
+    }
+    ideaLoading = false;
+  }
+
+  private async Task HandleValidSubmit()
+  {
+    formLoading = true;
+    submitMessage = null;
+    if (idea is null || Id is null)
+    {
+      return;
+    }
+    try
+    {
+      var response = await httpClient!.PutAsJsonAsync($"ideas/{Id}", idea);
+
+      if (response.StatusCode != System.Net.HttpStatusCode.OK)
+      {
+        submitMessage = "error saving idea";
+        return;
+      }
+
+      await RetrieveIdea();
+      editContext = new(idea!);
+    }
+    catch (Exception exception)
+    {
+      submitMessage = exception.Message;
+    }
+    formLoading = false;
+  }
+
+  private void HandleCheckboxChange(UpdateIdeaField field, bool inputValue)
+  {
+    field.Value = inputValue.ToString();
+    field.ValueBool = inputValue;
+  }
+
+  private async Task HandleDelete()
+  {
+    deleteLoading = true;
+    if (idea is null)
+    {
+      return;
+    }
+    try
+    {
+      var response = await httpClient!.DeleteAsync($"ideas/{idea.Id}");
+      if (!response.IsSuccessStatusCode)
+      {
+        submitMessage = "error deleting idea";
+        return;
+      }
+
+      NavigationManager.NavigateTo("ideas");
+    }
+    catch (Exception exception)
+    {
+      submitMessage = exception.Message;
+    }
+    deleteLoading = false;
+  }
+}

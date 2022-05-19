@@ -38,4 +38,17 @@ namespace Brainstorm.V2.Frontend.Models
   {
     public bool ValueBool { get; set; }
   }
+
+  public class UpdateIdeaModel : Idea
+  {
+    [Required(ErrorMessage = "name is required")]
+    new public string? Name { get; set; }
+    [ValidateComplexType]
+    public new List<UpdateIdeaField> Fields { get; set; } = new List<UpdateIdeaField>();
+  }
+
+  public class UpdateIdeaField : IdeaField
+  {
+    public bool ValueBool { get; set; }
+  }
 }

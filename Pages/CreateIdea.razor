@@ -55,14 +55,11 @@
           }
           else if (field.Type == TemplateFieldType.boolean)
           {
-            <div>
-              <div class="form-check">
-                <InputCheckbox class="form-check-input" Value="@field.ValueBool"
-              ValueChanged="(bool value) => HandleCheckboxChange(field, value)"
-              ValueExpression="() => field.ValueBool" />
-                <label class="form-check-label">true</label>
-                <ValidationMessage For="@(() => field.Value)" />
-              </div>
+            <div class="form-check">
+              <InputCheckbox class="form-check-input" Value="@field.ValueBool"
+            ValueChanged="(bool value) => HandleCheckboxChange(field, value)" ValueExpression="() => field.ValueBool" />
+              <label class="form-check-label">true</label>
+              <ValidationMessage For="@(() => field.Value)" />
             </div>
           }
           else if (field.Type == TemplateFieldType.number)
@@ -142,11 +139,11 @@
 
       var created = await response.Content.ReadFromJsonAsync<Idea>();
 
-      NavigationManager.NavigateTo($"ideas/view?ideaId={created?.Id}");
+      NavigationManager.NavigateTo($"ideas/view/{created?.Id}");
     }
     catch (Exception exception)
     {
-      Console.WriteLine(exception);
+      submitMessage = "error creating idea";
     }
     formLoading = false;
   }

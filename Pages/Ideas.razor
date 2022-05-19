@@ -43,9 +43,9 @@
               <h6 class="card-subtitle mb-2 text-muted mt-auto">@(item.Template?.Name ?? "no template")</h6>
             </div>
             <div class="card-footer">
-              <a href="ideas/view?ideaId=@(item.Id)" class="btn btn-link">view</a>
+              <a href="ideas/view/@(item.Id)" class="btn btn-link">view</a>
               <button @onclick="() => HandleDelete(item)" class="btn btn-link text-danger"
-            disabled="@deleting">view</button>
+            disabled="@deleting">delete</button>
             </div>
 
           </div>
