@@ -5,7 +5,10 @@
 <PageTitle>Ideas</PageTitle>
 <div>
   <h1 class="display-1">ideas</h1>
-  <p class="fs-6 text-muted">@(ideas.Count() + " idea(s)")</p>
+  @if (!loading)
+  {
+    <p class="fs-6 text-muted">@(ideas.Count() + " idea(s)")</p>
+  }
   <div class="row g-4">
     <div class="col-12 col-md-auto">
       <a class="btn btn-primary" href="ideas/create">new idea</a>

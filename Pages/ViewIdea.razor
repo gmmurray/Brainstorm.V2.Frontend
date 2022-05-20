@@ -35,7 +35,7 @@
         </div>
         <div class="my-1 col-lg-6">
           <label class="form-label">template</label>
-          <input class="form-control" value="@idea.Template?.Name" type="text" disabled readonly />
+          <input class="form-control" value="@(idea.Template?.Name ?? "no template")" type="text" disabled readonly />
         </div>
         @foreach (var field in idea.Fields)
         {
