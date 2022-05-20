@@ -36,4 +36,13 @@ namespace Brainstorm.V2.Frontend.Models
     new public string? Name { get; set; }
     public TemplateField NewField { get; set; } = new TemplateField { Name = "", Type = TemplateFieldType.text };
   }
+
+  public class UpdateTemplateModel : Template
+  {
+    [Required(ErrorMessage = "name is required")]
+    new public string? Name { get; set; }
+    [ValidateComplexType]
+    public new List<TemplateField> Fields { get; set; } = new List<TemplateField>();
+    public TemplateField NewField { get; set; } = new TemplateField { Name = "", Type = TemplateFieldType.text };
+  }
 }

@@ -104,6 +104,8 @@
 
     try
     {
+      templateModel.Fields = templateModel.Fields.Concat(addedFields);
+
       var response = await httpClient!.PostAsJsonAsync("templates", templateModel);
 
       if (response.StatusCode != System.Net.HttpStatusCode.Created)

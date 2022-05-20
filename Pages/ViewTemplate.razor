@@ -1,0 +1,215 @@
+@page "/templates/view/{Id}"
+
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>view template</PageTitle>
+
+<div>
+  <h1 class="display-1">view template</h1>
+  <a class="btn btn-outline-primary" href="templates">back to templates</a>
+  @if (templateLoading)
+  {
+    <Spinner />
+  }
+  else if (templateModel is null)
+  {
+    <div>
+      <h4 class="display-4 text-muted text-center mt-5">template could not be found</h4>
+    </div>
+  }
+  else
+  {
+    <EditForm Model="@templateModel" OnValidSubmit="@HandleValidSubmit" class="mt-3">
+      <ObjectGraphDataAnnotationsValidator />
+      <div class="row">
+        @if (!string.IsNullOrEmpty(submitMessage))
+        {
+          <div class="col-12">
+            <p class="text-danger fw-bold">@submitMessage</p>
+          </div>
+        }
+        <div class="my-1 col-lg-6">
+          <InputText @bind-Value="templateModel.Name" class="form-control" placeholder="name" />
+          <ValidationMessage For="@(() => templateModel.Name)" />
+        </div>
+        <div class="my-1 col-lg-6">
+          <div class="input-group">
+            <InputText @bind-Value="templateModel.NewField.Name" class="form-control w-50 no-validate"
+            placeholder="add a field" />
+            <InputSelect @bind-Value="templateModel.NewField.Type" class="form-select no-validate">
+              @foreach (var value in Enum.GetValues(typeof(TemplateFieldType)))
+              {
+                      <option value="@value">@(((TemplateFieldType)value).ToString())</option>
+              }
+                  </InputSelect>
+                  <button @onclick="HandleAddField" class="btn btn-outline-primary" type="button">
+                    add
+                  </button>
+                </div>
+                <ValidationMessage For="@(() => templateModel.NewField.Name)" />
+              </div>
+              <div class="my-1 col-12">
+                <button type="submit" disabled="@formLoading" class="btn btn-primary">
+                  @if (formLoading)
+            {
+              <span class="spinner-border spinner-border-sm"></span>
+              <span>saving...</span>
+            }
+            else
+            {
+              <span>save</span>
+            }
+          </button><button type="button" @onclick="HandleDelete" disabled="@(formLoading || deleteLoading)"
+          class="btn btn-danger ms-2">
+            @if (deleteLoading)
+            {
+              <span class="spinner-border spinner-border-sm"></span>
+              <span>deleting...</span>
+            }
+            else
+            {
+              <span>delete</span>
+            }
+          </button>
+        </div>
+        <div class="my-1 col-12">
+          <ul class="list-group list-group-numbered">
+            @for (var i = 0; i < templateModel.Fields.Count(); i++)
+            {
+              var index = i;
+              var field = templateModel.Fields.ElementAt(index);
+              <li class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                  <div class="fw-bold">@field.Name</div>
+                  <span>@field.Type</span>
+                </div>
+                <button type="button" class="btn btn-danger" @onclick="() => HandleRemoveField(index)">
+                  <i class="bi bi-x"></i>
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    </EditForm>
+  }
+</div>
+
+@code
+{
+  [Parameter]
+  public string? Id { get; set; }
+  private UpdateTemplateModel? templateModel;
+  private EditContext? editContext;
+  private HttpClient? httpClient;
+  private bool templateLoading = true;
+  private bool formLoading = false;
+  private bool deleteLoading = false;
+  private string? submitMessage;
+
+  protected override async Task OnInitializedAsync()
+  {
+    httpClient = ClientFactory.CreateClient("WebAPI");
+    await RetrieveTemplate();
+    editContext = new(templateModel!);
+  }
+
+  private async Task RetrieveTemplate()
+  {
+    if (httpClient is null || Id is null)
+    {
+      return;
+    }
+
+    templateLoading = true;
+    try
+    {
+      templateModel = await httpClient!.GetFromJsonAsync<UpdateTemplateModel>($"templates/{Id}");
+      if (templateModel is null)
+      {
+        return;
+      }
+    }
+    catch (Exception exception)
+    {
+      if (exception is AccessTokenNotAvailableException)
+      {
+        ((AccessTokenNotAvailableException)exception).Redirect();
+      }
+    }
+    templateLoading = false;
+  }
+
+  private async Task HandleValidSubmit()
+  {
+    formLoading = true;
+    submitMessage = null;
+    if (templateModel is null || Id is null)
+    {
+      return;
+    }
+    try
+    {
+      var response = await httpClient!.PutAsJsonAsync($"templates/{Id}", templateModel);
+
+      if (response.StatusCode != System.Net.HttpStatusCode.OK)
+      {
+        submitMessage = "error saving template";
+        return;
+      }
+
+      await RetrieveTemplate();
+      editContext = new(templateModel!);
+    }
+    catch (Exception exception)
+    {
+      submitMessage = exception.Message;
+      formLoading = false;
+    }
+    formLoading = false;
+  }
+
+  private async Task HandleDelete()
+  {
+    deleteLoading = true;
+    if (templateModel is null)
+    {
+      return;
+    }
+    try
+    {
+      var response = await httpClient!.DeleteAsync($"templates/{templateModel.Id}");
+      if (!response.IsSuccessStatusCode)
+      {
+        submitMessage = "error deleting template";
+        return;
+      }
+
+      NavigationManager.NavigateTo("templates");
+    }
+    catch (Exception exception)
+    {
+      submitMessage = exception.Message;
+    }
+    deleteLoading = false;
+  }
+
+  private void HandleAddField()
+  {
+    templateModel.Fields.Add(new TemplateField
+    {
+      Name = templateModel.NewField.Name,
+      Type = templateModel.NewField.Type,
+    });
+
+    templateModel.NewField.Name = "";
+    templateModel.NewField.Type = TemplateFieldType.text;
+  }
+
+  private void HandleRemoveField(int index)
+  {
+    templateModel.Fields.RemoveAt(index);
+  }
+}

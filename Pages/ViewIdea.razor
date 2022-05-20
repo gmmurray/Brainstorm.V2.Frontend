@@ -111,7 +111,7 @@
 
   private async Task RetrieveIdea()
   {
-    if (httpClient is null | Id is null)
+    if (httpClient is null || Id is null)
     {
       return;
     }
